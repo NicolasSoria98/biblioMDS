@@ -1,0 +1,310 @@
+/* ============================================
+   DASHBOARD - ESTILOS DESDE CERO
+   ============================================ */
+
+/* Contenedor principal */
+.dashboard-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-light);
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+.dashboard-header {
+  background: var(--color-primary);
+  color: white;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.header-welcome {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-icon {
+  font-size: 2rem;
+}
+
+.header-text h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: white;
+}
+
+.header-text p {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  margin: 0;
+  color: white;
+}
+
+.btn-logout {
+  padding: 0.75rem 1.5rem;
+  background: var(--color-hover);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-logout:hover {
+  background: #152d1f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   CONTENIDO PRINCIPAL
+   ============================================ */
+.dashboard-content {
+  flex: 1;
+  padding: 3rem 2rem 2rem;
+  overflow-y: auto;
+}
+
+/* ============================================
+   SECCIÓN PRINCIPAL
+   ============================================ */
+.main-section {
+  margin-bottom: 3rem;
+}
+
+.section-title {
+  text-align: center;
+  color: var(--color-primary);
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+}
+
+.main-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Cards principales */
+.main-card {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.main-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(46, 83, 57, 0.2);
+  border-color: var(--color-accent);
+}
+
+.main-card-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+.main-card h3 {
+  color: var(--color-primary);
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.main-card p {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* ============================================
+   SECCIÓN SECUNDARIA
+   ============================================ */
+.secondary-section {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.secondary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 700px;
+  width: 100%;
+}
+
+/* Cards secundarias */
+.secondary-card {
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+}
+
+.secondary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(46, 83, 57, 0.15);
+  border-color: var(--color-accent);
+}
+
+.secondary-card-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.secondary-card h4 {
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.secondary-card p {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.dashboard-footer {
+  background: var(--color-primary);
+  color: white;
+  text-align: center;
+  padding: 1.25rem 2rem;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.dashboard-footer p {
+  margin: 0;
+  opacity: 0.95;
+}
+
+/* ============================================
+   RESPONSIVE - TABLET
+   ============================================ */
+@media (max-width: 1024px) {
+  .dashboard-content {
+    padding: 2rem 1.5rem;
+  }
+
+  .main-cards {
+    grid-template-columns: 1fr;
+    max-width: 500px;
+    gap: 1.5rem;
+  }
+
+  .secondary-section {
+    justify-content: center;
+    margin-top: 2rem;
+  }
+
+  .secondary-cards {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 600px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - MOBILE
+   ============================================ */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+    padding: 1.25rem 1rem;
+  }
+
+  .header-welcome {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .header-text h1 {
+    font-size: 1.25rem;
+  }
+
+  .header-text p {
+    font-size: 0.875rem;
+  }
+
+  .dashboard-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .main-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .main-card-icon {
+    font-size: 3rem;
+  }
+
+  .main-card h3 {
+    font-size: 1.2rem;
+  }
+
+  .secondary-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .secondary-card {
+    padding: 1.25rem 0.75rem;
+  }
+
+  .secondary-card-icon {
+    font-size: 2rem;
+  }
+
+  .secondary-card h4 {
+    font-size: 0.875rem;
+  }
+
+  .secondary-card p {
+    font-size: 0.75rem;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - MOBILE PEQUEÑO
+   ============================================ */
+@media (max-width: 480px) {
+  .secondary-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .main-cards {
+    gap: 1.25rem;
+  }
+}
