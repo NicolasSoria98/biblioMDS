@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
+import multasObservable from '../../../server/services/MultasObservable';
+import { api } from '../../../server/services/Facade';
 import Modal from '../components/common/Modal';
 import RegistrarSocioForm from '../components/forms/RegistrarSocioForm';
 import RealizarPrestamoForm from '../components/forms/RealizarPrestamoForm';
@@ -31,6 +33,49 @@ function Dashboard() {
   const [modalGestionarEjemplares, setModalGestionarEjemplares] = useState(false);
   
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // 🆕 Estado para el contador de multas impagas
+  const [multasImpagas, setMultasImpagas] = useState(0);
+
+  // 🆕 useEffect para cargar y suscribirse al observable
+  useEffect(() => {
+    // Cargar contador inicial
+    fetchMultasImpagasCount();
+
+    // 🔔 SUSCRIBIRSE al observable
+    const unsubscribe = multasObservable.subscribe((data) => {
+      console.log('🔔 Dashboard recibió evento:', data);
+      
+      if (data.type === 'MULTAS_COUNT_UPDATED' || 
+          data.type === 'MULTA_PAGADA' || 
+          data.type === 'MULTA_CREADA') {
+        setMultasImpagas(data.count);
+      }
+    });
+
+    // 🧹 DESUSCRIBIRSE al desmontar
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // 🆕 Función para cargar el contador inicial
+  const fetchMultasImpagasCount = async () => {
+    try {
+      const response = await api.obtenerMultas();
+      const data = Array.isArray(response.data) ? response.data : 
+                   Array.isArray(response) ? response : [];
+      
+      const multasPendientes = data.filter(m => m.estado === 'pendiente');
+      const count = multasPendientes.length;
+      
+      // Actualizar el observable
+      multasObservable.setMultasImpagasCount(count);
+      setMultasImpagas(count);
+    } catch (err) {
+      console.error('Error al cargar multas impagas:', err);
+    }
+  };
 
   const handleLogout = () => {
     authService.logout();
@@ -86,7 +131,7 @@ function Dashboard() {
     }
   ];
 
-  // Funciones secundarias
+  // 🆕 Funciones secundarias con contador dinámico
   const secondaryFunctions = [
     {
       id: 1,
@@ -107,7 +152,9 @@ function Dashboard() {
       icon: '💰',
       title: 'Listar Multas',
       description: 'Ver multas',
-      action: () => setModalListarMultas(true)
+      action: () => setModalListarMultas(true),
+      badge: multasImpagas,
+      badgeType: 'danger' 
     },
     {
       id: 4,
@@ -184,6 +231,12 @@ function Dashboard() {
                 className="secondary-card"
                 onClick={func.action}
               >
+                {/*  Badge condicional */}
+                {func.badge > 0 && (
+                  <span className={`card-badge badge-${func.badgeType}`}>
+                    {func.badge}
+                  </span>
+                )}
                 <span className="secondary-card-icon">{func.icon}</span>
                 <h4>{func.title}</h4>
                 <p>{func.description}</p>
@@ -198,7 +251,7 @@ function Dashboard() {
         <p>© 2025 Sistema de Gestión Bibliotecaria desarrollado por Nicolás Soria</p>
       </footer>
 
-      {/* Modales Principales */}
+      {/* Modales - sin cambios */}
       <Modal
         isOpen={modalRegistrarSocio}
         onClose={() => setModalRegistrarSocio(false)}
@@ -235,7 +288,6 @@ function Dashboard() {
         />
       </Modal>
 
-      {/* Modales Secundarios */}
       <Modal
         isOpen={modalListarLibros}
         onClose={() => setModalListarLibros(false)}

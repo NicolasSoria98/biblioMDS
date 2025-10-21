@@ -38,6 +38,7 @@ class Prestamo {
   static async getActivos() {
     const [rows] = await db.query(
       `SELECT p.*, 
+        p.id_socio,  /* ← AGREGAR ESTA LÍNEA EXPLÍCITAMENTE */
         s.nombre as nombre_socio, s.dni,
         l.titulo, l.autor,
         b.nombre as nombre_bibliotecario,

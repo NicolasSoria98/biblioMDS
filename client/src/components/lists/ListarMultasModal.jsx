@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import Table from '../common/Table';
 import SearchFilter from '../common/SearchFilter';
+import { api, date, filter, notification } from '../../../../server/services/Facade';
+import multasObservable from '../../../../server/services/MultasObservable';
 import '../../styles/ListarMultasModal.css';
 
 function ListarMultasModal({ onClose }) {
@@ -19,31 +20,36 @@ function ListarMultasModal({ onClose }) {
 
   const fetchMultas = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/multas');
-      setMultas(response.data);
-      setFilteredMultas(response.data);
+      setLoading(true);
+      const response = await api.obtenerMultas();
+      const data = Array.isArray(response.data) ? response.data : 
+                   Array.isArray(response) ? response : [];
+      
+      setMultas(data);
+      setFilteredMultas(data);
+      
+      // 📢 Actualizar contador en el observable
+      const multasImpagas = data.filter(m => m.estado === 'pendiente').length;
+      multasObservable.setMultasImpagasCount(multasImpagas);
     } catch (err) {
+      console.error('Error:', err);
       setError('Error al cargar las multas');
-      console.error(err);
+      notification.error('Error al cargar las multas');
     } finally {
       setLoading(false);
     }
   };
 
   const handleFilter = (filterValues) => {
-    let filtered = [...multas];
+    const filtered = filter.filterByMultipleFields(multas, {
+      nombre_socio: filterValues.nombre_socio
+    });
 
-    if (filterValues.nombre_socio) {
-      filtered = filtered.filter(multa =>
-        multa.nombre_socio.toLowerCase().includes(filterValues.nombre_socio.toLowerCase())
-      );
-    }
+    const finalFiltered = filterValues.estado && filterValues.estado !== 'todas'
+      ? filtered.filter(m => m.estado === filterValues.estado)
+      : filtered;
 
-    if (filterValues.estado && filterValues.estado !== 'todas') {
-      filtered = filtered.filter(multa => multa.estado === filterValues.estado);
-    }
-
-    setFilteredMultas(filtered);
+    setFilteredMultas(finalFiltered);
   };
 
   const handleRegistrarPago = (multa) => {
@@ -53,35 +59,45 @@ function ListarMultasModal({ onClose }) {
 
   const confirmPago = async () => {
     setProcessingPayment(true);
+    setError('');
+    
     try {
       const fechaPago = new Date().toISOString().split('T')[0];
       
-      await axios.put(`http://localhost:5000/api/multas/${selectedMulta.id}/pago`, {
-        fecha_pago: fechaPago
-      });
+      await api.registrarPagoMulta(selectedMulta.id, fechaPago);
 
-      // Actualizar el estado local
-      const updatedMultas = multas.map(multa =>
-        multa.id === selectedMulta.id
-          ? { ...multa, estado: 'pagada', fecha_pago: fechaPago }
-          : multa
+      // Actualizar multa localmente
+      const multaActualizada = { 
+        ...selectedMulta, 
+        estado: 'pagada', 
+        fecha_pago: fechaPago 
+      };
+
+      const updatedMultas = multas.map(m =>
+        m.id === selectedMulta.id ? multaActualizada : m
+      );
+      
+      const updatedFilteredMultas = filteredMultas.map(m =>
+        m.id === selectedMulta.id ? multaActualizada : m
       );
       
       setMultas(updatedMultas);
+      setFilteredMultas(updatedFilteredMultas);
       
-      // Aplicar filtros actuales a las multas actualizadas
-      handleFilter(filteredMultas.reduce((acc, m) => {
-        const filter = filters.find(f => f.field in acc);
-        return acc;
-      }, {}));
+      // 📢 NOTIFICAR AL OBSERVABLE (esto actualiza el contador del botón)
+      multasObservable.decrementMultasImpagas();
       
       setShowConfirmModal(false);
       setSelectedMulta(null);
       
-      alert('Pago registrado exitosamente');
+      notification.success('✅ Pago registrado exitosamente');
     } catch (err) {
-      setError('Error al registrar el pago: ' + (err.response?.data?.error || err.message));
-      console.error(err);
+      console.error('Error al registrar pago:', err);
+      const errorMsg = 'Error al registrar el pago: ' + (err.response?.data?.error || err.message);
+      setError(errorMsg);
+      notification.error(errorMsg);
+      setShowConfirmModal(false);
+      setSelectedMulta(null);
     } finally {
       setProcessingPayment(false);
     }
@@ -102,7 +118,7 @@ function ListarMultasModal({ onClose }) {
       header: 'Fecha', 
       field: 'fecha_multa',
       width: '120px',
-      render: (row) => new Date(row.fecha_multa).toLocaleDateString('es-AR')
+      render: (row) => date.formatDate(row.fecha_multa)
     },
     { 
       header: 'Estado', 
@@ -162,23 +178,20 @@ function ListarMultasModal({ onClose }) {
     );
   }
 
-  const multasPendientes = filteredMultas.filter(m => m.estado === 'pendiente').length;
-  const totalPendiente = filteredMultas
+  const safeFilteredMultas = Array.isArray(filteredMultas) ? filteredMultas : [];
+  const multasPendientes = safeFilteredMultas.filter(m => m.estado === 'pendiente').length;
+  const totalPendiente = safeFilteredMultas
     .filter(m => m.estado === 'pendiente')
     .reduce((sum, m) => sum + parseFloat(m.monto), 0);
 
   return (
     <div className="modal-list-content">
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
+      {error && <div className="error-message">{error}</div>}
       
       <div className="multas-summary">
         <div className="summary-card">
           <div className="summary-label">Total multas</div>
-          <div className="summary-value">{filteredMultas.length}</div>
+          <div className="summary-value">{safeFilteredMultas.length}</div>
         </div>
         <div className="summary-card">
           <div className="summary-label">Pendientes</div>
@@ -195,7 +208,7 @@ function ListarMultasModal({ onClose }) {
       <div className="table-wrapper">
         <Table
           columns={columns}
-          data={filteredMultas}
+          data={safeFilteredMultas}
           emptyMessage="No se encontraron multas"
         />
       </div>
@@ -206,16 +219,20 @@ function ListarMultasModal({ onClose }) {
         </button>
       </div>
 
-      {/* Modal de Confirmación */}
       {showConfirmModal && selectedMulta && (
-        <div className="confirm-modal-overlay">
+        <div className="confirm-modal-overlay" onClick={(e) => {
+          if (e.target.className === 'confirm-modal-overlay') {
+            setShowConfirmModal(false);
+            setSelectedMulta(null);
+          }
+        }}>
           <div className="confirm-modal">
             <h3 className="confirm-modal-title">💳 Confirmar Pago de Multa</h3>
             
             <div className="confirm-modal-details">
               <p><strong>Socio:</strong> {selectedMulta.nombre_socio}</p>
               <p><strong>DNI:</strong> {selectedMulta.dni}</p>
-              <p><strong>Motivo:</strong> {selectedMulta.motivo}</p>
+              <p><strong>Motivo:</strong> {selectedMulta.motivo || 'Sin motivo especificado'}</p>
               <p className="confirm-modal-amount">
                 <strong>Monto:</strong> ${parseFloat(selectedMulta.monto).toFixed(2)}
               </p>
@@ -227,6 +244,7 @@ function ListarMultasModal({ onClose }) {
 
             <div className="confirm-modal-actions">
               <button
+                type="button"
                 onClick={() => {
                   setShowConfirmModal(false);
                   setSelectedMulta(null);
@@ -237,6 +255,7 @@ function ListarMultasModal({ onClose }) {
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={confirmPago}
                 disabled={processingPayment}
                 className="btn btn-success"

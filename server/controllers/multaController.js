@@ -1,83 +1,59 @@
+const asyncHandler = require('../middlewares/asyncHandler');
+const ApiResponse = require('../utils/ApiResponse');
 const Multa = require('../models/Multa');
 
-exports.getAll = async (req, res) => {
-  try {
-    const multas = await Multa.getAll();
-    res.json(multas);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+exports.getAll = asyncHandler(async (req, res) => {
+  const multas = await Multa.getAll();
+  ApiResponse.success(res, multas, 'Multas obtenidas exitosamente');
+});
 
-exports.getById = async (req, res) => {
-  try {
-    const multa = await Multa.getById(req.params.id);
-    if (!multa) {
-      return res.status(404).json({ error: 'Multa no encontrada' });
-    }
-    res.json(multa);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.getById = asyncHandler(async (req, res) => {
+  const multa = await Multa.getById(req.params.id);
+  
+  if (!multa) {
+    return ApiResponse.notFound(res, 'Multa');
   }
-};
+  
+  ApiResponse.success(res, multa, 'Multa encontrada');
+});
 
-exports.getPendientes = async (req, res) => {
-  try {
-    const multas = await Multa.getPendientes();
-    res.json(multas);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+exports.getPendientes = asyncHandler(async (req, res) => {
+  const multas = await Multa.getPendientes();
+  ApiResponse.success(res, multas, 'Multas pendientes obtenidas');
+});
 
-exports.getPorSocio = async (req, res) => {
-  try {
-    const multas = await Multa.getPorSocio(req.params.idSocio);
-    res.json(multas);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+exports.getPorSocio = asyncHandler(async (req, res) => {
+  const multas = await Multa.getPorSocio(req.params.idSocio);
+  ApiResponse.success(res, multas, `Multas del socio obtenidas`);
+});
 
-exports.create = async (req, res) => {
-  try {
-    const id = await Multa.create(req.body);
-    res.status(201).json({ id, message: 'Multa registrada exitosamente' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+exports.create = asyncHandler(async (req, res) => {
+  const id = await Multa.create(req.body);
+  ApiResponse.created(res, { id }, 'Multa registrada exitosamente');
+});
 
-exports.registrarPago = async (req, res) => {
-  try {
-    const { fecha_pago } = req.body;
-    const affectedRows = await Multa.registrarPago(req.params.id, fecha_pago);
-    if (affectedRows === 0) {
-      return res.status(404).json({ error: 'Multa no encontrada' });
-    }
-    res.json({ message: 'Pago registrado exitosamente' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.registrarPago = asyncHandler(async (req, res) => {
+  const { fecha_pago } = req.body;
+  const affectedRows = await Multa.registrarPago(req.params.id, fecha_pago);
+  
+  if (affectedRows === 0) {
+    return ApiResponse.notFound(res, 'Multa');
   }
-};
+  
+  ApiResponse.success(res, null, 'Pago registrado exitosamente');
+});
 
-exports.delete = async (req, res) => {
-  try {
-    const affectedRows = await Multa.delete(req.params.id);
-    if (affectedRows === 0) {
-      return res.status(404).json({ error: 'Multa no encontrada' });
-    }
-    res.json({ message: 'Multa eliminada exitosamente' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.delete = asyncHandler(async (req, res) => {
+  const affectedRows = await Multa.delete(req.params.id);
+  
+  if (affectedRows === 0) {
+    return ApiResponse.notFound(res, 'Multa');
   }
-};
+  
+  ApiResponse.success(res, null, 'Multa eliminada exitosamente');
+});
 
-exports.getTotalPorSocio = async (req, res) => {
-  try {
-    const total = await Multa.getTotalPorSocio(req.params.idSocio);
-    res.json({ total });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+exports.getTotalPorSocio = asyncHandler(async (req, res) => {
+  const total = await Multa.getTotalPorSocio(req.params.idSocio);
+  ApiResponse.success(res, { total }, 'Total calculado');
+});

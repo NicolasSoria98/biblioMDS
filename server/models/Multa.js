@@ -1,43 +1,35 @@
 const db = require('../config/db');
 
 class Multa {
+  static _baseQuery() {
+    return `
+      SELECT m.*, s.nombre as nombre_socio, s.dni
+      FROM multa m
+      JOIN socio s ON m.id_socio = s.id
+    `;
+  }
+
   static async getAll() {
-    const [rows] = await db.query(
-      `SELECT m.*, s.nombre as nombre_socio, s.dni
-       FROM multa m
-       JOIN socio s ON m.id_socio = s.id
-       ORDER BY m.fecha_multa DESC`
-    );
+    const query = `${this._baseQuery()} ORDER BY m.fecha_multa DESC`;
+    const [rows] = await db.query(query);
     return rows;
   }
 
   static async getById(id) {
-    const [rows] = await db.query(
-      `SELECT m.*, s.nombre as nombre_socio, s.dni
-       FROM multa m
-       JOIN socio s ON m.id_socio = s.id
-       WHERE m.id = ?`,
-      [id]
-    );
+    const query = `${this._baseQuery()} WHERE m.id = ?`;
+    const [rows] = await db.query(query, [id]);
     return rows[0];
   }
 
   static async getPendientes() {
-    const [rows] = await db.query(
-      `SELECT m.*, s.nombre as nombre_socio, s.dni
-       FROM multa m
-       JOIN socio s ON m.id_socio = s.id
-       WHERE m.estado = 'pendiente'
-       ORDER BY m.fecha_multa DESC`
-    );
+    const query = `${this._baseQuery()} WHERE m.estado = 'pendiente' ORDER BY m.fecha_multa DESC`;
+    const [rows] = await db.query(query);
     return rows;
   }
 
   static async getPorSocio(idSocio) {
-    const [rows] = await db.query(
-      'SELECT * FROM multa WHERE id_socio = ? ORDER BY fecha_multa DESC',
-      [idSocio]
-    );
+    const query = `${this._baseQuery()} WHERE m.id_socio = ? ORDER BY m.fecha_multa DESC`;
+    const [rows] = await db.query(query, [idSocio]);
     return rows;
   }
 

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: services/MultasObservable.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: services/MultasObservable.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Observable para gestionar el estado de multas impagas en toda la aplicación
+ * Implementa el patrón Observer para notificar cambios a múltiples componentes
+ * @class MultasObservable
+ * @example
+ * import multasObservable from './services/MultasObservable';
+ * 
+ * // Suscribirse a cambios
+ * const unsubscribe = multasObservable.subscribe((data) => {
+ *   console.log('Evento:', data.type, 'Contador:', data.count);
+ * });
+ * 
+ * // Desuscribirse
+ * unsubscribe();
+ */
+class MultasObservable {
+  /**
+   * Inicializa el observable con arrays vacíos de observadores
+   * @constructor
+   */
+  constructor() {
+    /**
+     * Lista de funciones callback suscritas
+     * @type {Array&lt;Function>}
+     * @private
+     */
+    this.observers = [];
+    
+    /**
+     * Contador actual de multas impagas
+     * @type {number}
+     * @private
+     */
+    this.multasImpagasCount = 0;
+  }
+
+  /**
+   * Suscribe un observador para recibir notificaciones de cambios
+   * @param {Function} callback - Función que se ejecutará cuando haya cambios
+   * @param {Object} callback.data - Datos del evento
+   * @param {string} callback.data.type - Tipo de evento ('MULTAS_COUNT_UPDATED', 'MULTA_PAGADA', 'MULTA_CREADA')
+   * @param {number} callback.data.count - Contador actual de multas impagas
+   * @returns {Function} Función para desuscribirse
+   * @example
+   * const unsubscribe = multasObservable.subscribe((data) => {
+   *   if (data.type === 'MULTA_PAGADA') {
+   *     console.log('Multa pagada! Quedan:', data.count);
+   *   }
+   * });
+   * 
+   * // Más tarde, cuando el componente se desmonte
+   * unsubscribe();
+   */
+  subscribe(callback) {
+    this.observers.push(callback);
+    
+    // Retorna función de limpieza para desuscribirse
+    return () => {
+      this.observers = this.observers.filter(obs => obs !== callback);
+    };
+  }
+
+  /**
+   * Notifica a todos los observadores suscritos sobre un cambio
+   * @param {Object} data - Datos del evento a notificar
+   * @param {string} data.type - Tipo de evento
+   * @param {number} data.count - Contador actualizado
+   * @private
+   * @example
+   * this.notify({ type: 'MULTA_PAGADA', count: 5 });
+   */
+  notify(data) {
+    this.observers.forEach(callback => {
+      callback(data);
+    });
+  }
+
+  /**
+   * Establece el contador de multas impagas y notifica a los observadores
+   * @param {number} count - Nuevo valor del contador
+   * @fires MultasObservable#MULTAS_COUNT_UPDATED
+   * @example
+   * // Después de cargar multas desde la API
+   * const multasPendientes = multas.filter(m => m.estado === 'pendiente').length;
+   * multasObservable.setMultasImpagasCount(multasPendientes);
+   */
+  setMultasImpagasCount(count) {
+    this.multasImpagasCount = count;
+    this.notify({ 
+      type: 'MULTAS_COUNT_UPDATED', 
+      count: this.multasImpagasCount 
+    });
+  }
+
+  /**
+   * Decrementa el contador de multas impagas en 1 y notifica
+   * Solo decrementa si el contador es mayor a 0
+   * @fires MultasObservable#MULTA_PAGADA
+   * @example
+   * // Cuando un usuario paga una multa
+   * await api.registrarPagoMulta(multaId, fechaPago);
+   * multasObservable.decrementMultasImpagas();
+   */
+  decrementMultasImpagas() {
+    if (this.multasImpagasCount > 0) {
+      this.multasImpagasCount--;
+      this.notify({ 
+        type: 'MULTA_PAGADA', 
+        count: this.multasImpagasCount 
+      });
+    }
+  }
+
+  /**
+   * Incrementa el contador de multas impagas en 1 y notifica
+   * @fires MultasObservable#MULTA_CREADA
+   * @example
+   * // Cuando se crea una nueva multa
+   * await api.crearMulta(multaData);
+   * multasObservable.incrementMultasImpagas();
+   */
+  incrementMultasImpagas() {
+    this.multasImpagasCount++;
+    this.notify({ 
+      type: 'MULTA_CREADA', 
+      count: this.multasImpagasCount 
+    });
+  }
+
+  /**
+   * Obtiene el contador actual de multas impagas
+   * @returns {number} Número de multas impagas
+   * @example
+   * const count = multasObservable.getMultasImpagasCount();
+   * console.log(`Tienes ${count} multas pendientes`);
+   */
+  getMultasImpagasCount() {
+    return this.multasImpagasCount;
+  }
+}
+
+/**
+ * Instancia única (Singleton) del observable de multas
+ * @type {MultasObservable}
+ * @example
+ * import multasObservable from './services/MultasObservable';
+ * 
+ * // Usar en cualquier parte de la aplicación
+ * multasObservable.subscribe((data) => {
+ *   console.log('Cambio detectado:', data);
+ * });
+ */
+export default new MultasObservable();
+
+/**
+ * Evento emitido cuando se actualiza el contador completo
+ * @event MultasObservable#MULTAS_COUNT_UPDATED
+ * @type {Object}
+ * @property {string} type - 'MULTAS_COUNT_UPDATED'
+ * @property {number} count - Nuevo contador de multas
+ */
+
+/**
+ * Evento emitido cuando se paga una multa
+ * @event MultasObservable#MULTA_PAGADA
+ * @type {Object}
+ * @property {string} type - 'MULTA_PAGADA'
+ * @property {number} count - Contador actualizado después del pago
+ */
+
+/**
+ * Evento emitido cuando se crea una nueva multa
+ * @event MultasObservable#MULTA_CREADA
+ * @type {Object}
+ * @property {string} type - 'MULTA_CREADA'
+ * @property {number} count - Contador actualizado después de la creación
+ */</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Libro.html">Libro</a></li><li><a href="MultasObservable.html">MultasObservable</a></li></ul><h3>Events</h3><ul><li><a href="MultasObservable.html#event:MULTAS_COUNT_UPDATED">MULTAS_COUNT_UPDATED</a></li><li><a href="MultasObservable.html#event:MULTA_CREADA">MULTA_CREADA</a></li><li><a href="MultasObservable.html#event:MULTA_PAGADA">MULTA_PAGADA</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Oct 21 2025 11:05:41 GMT-0300 (hora estándar de Argentina)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

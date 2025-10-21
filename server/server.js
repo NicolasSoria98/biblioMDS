@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-
+const errorHandler = require('./middlewares/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -25,7 +25,6 @@ app.use('/api/prestamos', prestamoRoutes);
 app.use('/api/multas', multaRoutes);
 app.use('/api/auth', authRoutes);
 
-
 app.get('/', (req, res) => {
   res.json({ 
     message: 'API de Sistema de Biblioteca',
@@ -42,22 +41,18 @@ app.get('/', (req, res) => {
   });
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    error: 'Error interno del servidor',
-    message: err.message 
+// Manejo de rutas no encontradas
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false,
+    error: 'Ruta no encontrada' 
   });
 });
 
-
-app.use((req, res) => {
-  res.status(404).json({ error: 'Ruta no encontrada' });
-});
-
+app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
-  console.log(`API disponible en http://localhost:${PORT}`);
-  console.log(`Endpoints disponibles en http://localhost:${PORT}/api`);
+  console.log(` Servidor corriendo en puerto ${PORT}`);
+  console.log(` API disponible en http://localhost:${PORT}`);
+  console.log(` Endpoints disponibles en http://localhost:${PORT}/api`);
 });

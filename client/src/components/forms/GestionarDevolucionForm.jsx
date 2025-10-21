@@ -49,35 +49,45 @@ function GestionarDevolucionForm({ onSuccess, onCancel }) {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-    try {
-      // 1. Registrar devolución
-      await axios.put(
-        `http://localhost:5000/api/prestamos/${formData.id_prestamo}/devolucion`,
-        { fecha_devolucion_real: formData.fecha_devolucion_real }
-      );
+  try {
+    await axios.put(
+      `http://localhost:5000/api/prestamos/${formData.id_prestamo}/devolucion`,
+      { fecha_devolucion_real: formData.fecha_devolucion_real }
+    );
+    if (formData.estado_libro === 'dañado' && formData.multa_monto) {
+      const multa = {
+        id_socio: parseInt(prestamoSeleccionado.id_socio),
+        id_prestamo: parseInt(formData.id_prestamo),
+        monto: parseFloat(formData.multa_monto),
+        motivo: formData.multa_motivo.trim() || '' 
+      };
 
-      // 2. Si el libro está dañado, registrar multa
-      if (formData.estado_libro === 'dañado' && formData.multa_monto) {
-        await axios.post('http://localhost:5000/api/multas', {
-          id_socio: prestamoSeleccionado.id_socio,
-          id_prestamo: formData.id_prestamo,
-          monto: parseFloat(formData.multa_monto),
-          motivo: formData.multa_motivo || 'Libro dañado'
-        });
-      }
-
-      onSuccess({ message: 'Devolución registrada exitosamente' });
-    } catch (err) {
-      setError(err.response?.data?.error || 'Error al procesar la devolución');
-    } finally {
-      setLoading(false);
+      console.log('Datos de multa a enviar:', multa);
+      
+      await axios.post('http://localhost:5000/api/multas', multa);
     }
-  };
+
+    onSuccess({ message: 'Devolución registrada exitosamente' });
+  } catch (err) {
+    console.error('Error completo:', err.response?.data); 
+    
+    if (err.response?.data?.detalles) {
+      const errores = err.response.data.detalles
+        .map(e => `${e.campo}: ${e.mensaje}`)
+        .join('\n');
+      setError(`Errores de validación:\n${errores}`);
+    } else {
+      setError(err.response?.data?.error || 'Error al procesar la devolución');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loadingData) {
     return <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando préstamos...</div>;

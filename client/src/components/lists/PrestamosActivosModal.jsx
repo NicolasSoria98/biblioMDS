@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import Table from '../common/Table';
 import SearchFilter from '../common/SearchFilter';
+import { api, date, filter, notification } from '../../../../server/services/Facade';
 
 function PrestamosActivosModal({ onClose }) {
   const [prestamos, setPrestamos] = useState([]);
@@ -15,31 +15,23 @@ function PrestamosActivosModal({ onClose }) {
 
   const fetchPrestamos = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/prestamos/activos');
-      setPrestamos(response.data);
-      setFilteredPrestamos(response.data);
+      setLoading(true);
+      const data = await api.obtenerPrestamosActivos();
+      const prestamosData = data.data || data;
+      
+      setPrestamos(prestamosData);
+      setFilteredPrestamos(prestamosData);
     } catch (err) {
-      setError('Error al cargar los préstamos activos');
+      const errorMsg = 'Error al cargar los préstamos activos';
+      setError(errorMsg);
+      notification.error(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
   const handleFilter = (filterValues) => {
-    let filtered = [...prestamos];
-
-    if (filterValues.titulo) {
-      filtered = filtered.filter(prestamo =>
-        prestamo.titulo.toLowerCase().includes(filterValues.titulo.toLowerCase())
-      );
-    }
-
-    if (filterValues.nombre_socio) {
-      filtered = filtered.filter(prestamo =>
-        prestamo.nombre_socio.toLowerCase().includes(filterValues.nombre_socio.toLowerCase())
-      );
-    }
-
+    const filtered = filter.filterByMultipleFields(prestamos, filterValues);
     setFilteredPrestamos(filtered);
   };
 
@@ -51,20 +43,22 @@ function PrestamosActivosModal({ onClose }) {
       header: 'Fecha Préstamo', 
       field: 'fecha_prestamo',
       width: '130px',
-      render: (row) => new Date(row.fecha_prestamo).toLocaleDateString()
+      render: (row) => date.formatDate(row.fecha_prestamo)
     },
     { 
       header: 'Fecha Devolución', 
       field: 'fecha_devolucion_estimada',
       width: '150px',
-      render: (row) => new Date(row.fecha_devolucion_estimada).toLocaleDateString()
+      render: (row) => date.formatDate(row.fecha_devolucion_estimada)
     },
     { 
       header: 'Días Retraso', 
       field: 'dias_retraso',
       width: '120px',
       render: (row) => (
-        <span style={{ color: row.dias_retraso > 0 ? 'var(--color-error)' : 'inherit' }}>
+        <span style={{ 
+          color: row.dias_retraso > 0 ? 'var(--color-error)' : 'inherit' 
+        }}>
           {row.dias_retraso > 0 ? `+${row.dias_retraso}` : row.dias_retraso}
         </span>
       )
